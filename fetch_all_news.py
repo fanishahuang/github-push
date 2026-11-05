@@ -39,7 +39,7 @@ def push_to_wechat(html_content):
         print("错误: 缺少密钥！")
         return
 
-    url = "https://wxpusher.zhengjiecon.cn/api/send/message"
+    url = "https://wxpusher.zhengjiecc.com/api/send/message"
     payload = {
         "appToken": WXPUSHER_APP_TOKEN,
         "content": f"<h3>🌍 科技情报早报</h3><hr>{html_content}",
