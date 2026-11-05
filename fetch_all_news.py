@@ -6,11 +6,11 @@ import feedparser
 WXPUSHER_APP_TOKEN = os.environ.get("WXPUSHER_APP_TOKEN")
 WXPUSHER_UID = os.environ.get("WXPUSHER_UID")
 
-# 定义多平台 RSS / 资讯源（你可以自由修改或增减链接）
+# 使用更稳定、国内也能顺畅访问的科技 RSS 源作为测试
 RSS_FEEDS = {
-    "🔥 Google 热搜": "https://trends.google.com/trends/hottrends/atom/feed?rs=i",
-    "✈️ Telegram 科技频道": "https://rsshub.app/telegram/channel/telegram", 
-    "🐦 X (推特) 热门": "https://rsshub.app/twitter/trending"
+    "🔥 IT之家": "https://www.ithome.com/rss/",
+    "💻 少数派": "https://sspai.com/feed",
+    "🚀 36Kr": "https://36kr.com/feed"
 }
 
 def fetch_multi_platform_news():
@@ -41,8 +41,8 @@ def push_to_wechat(html_content):
     url = "https://wxpusher.zhengjiecon.cn/api/send/message"
     payload = {
         "appToken": WXPUSHER_APP_TOKEN,
-        "content": f"<h3>🌍 全网科技与热点情报日报</h3><hr>{html_content}",
-        "contentType": 2, # 2 代表 HTML 图文排版，支持超链接点击
+        "content": f"<h3>🌍 科技情报早报</h3><hr>{html_content}",
+        "contentType": 2, # 2 代表 HTML 图文排版
         "uids": [WXPUSHER_UID]
     }
     
