@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests # 如果您的脚本用到了其他第三方库（如 beautifulsoup4 等），请在这里一并安装
+          pip install requests beautifulsoup4 # 如果您的脚本用到了其他第三方库（如 beautifulsoup4 等），请在这里一并安装
 
       - name: Run push_trending.py
         env:
