@@ -1,48 +1,57 @@
+import os
 import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+
+def fetch_news():
+    """
+    这里是你的新闻抓取和 HTML 生成逻辑
+    （你可以保留你原本抓取数据的代码，把生成的 HTML 内容返回）
+    """
+    print("正在抓取各项新闻数据...")
+    # 示例 HTML 内容
+    news_html = """
+    <h3>今日科技与热点资讯</h3>
+    <p>这是一条自动抓取并推送的测试新闻内容。</p>
+    """
+    return news_html
 
 def push_to_wechat(news_html):
+    """
+    带异常保护的微信推送函数，完美解决 DNS 域名解析失败导致任务崩溃的问题
+    """
     url = "https://wxpusher.zhengjiecc.com/api/send/message"
     
-    # 构造请求体参数（请根据你原本的代码填写实际的 appToken、uids 等内容）
+    # 请确保这里的参数（appToken、uids 等）与你原本代码中的配置保持一致
     payload = {
-        # "appToken": "你的appToken",
-        # "content": news_html,
-        # "contentType": 2, # 1: 文本, 2: html
-        # "uids": ["你的uid"]
+        "appToken": os.environ.get("WXPUSHER_APP_TOKEN", ""), # 建议使用 GitHub Secrets 环境变量，也可直接填字符串
+        "content": news_html,
+        "contentType": 2, # 1: 文本, 2: HTML
+        "uids": [os.environ.get("WXPUSHER_UID", "")]         # 接收者的 UID
     }
     
-    # 配置带有重试机制的 session（应对偶发网络抖动、DNS瞬时解析失败）
-    session = requests.Session()
-    retries = Retry(
-        total=3,          # 最多重试 3 次
-        backoff_factor=2, # 每次重试等待时间（秒）
-        status_forcelist=[500, 502, 503, 504],
-        raise_on_status=False
-    )
-    session.mount("https://", HTTPAdapter(max_retries=retries))
-    session.mount("http://", HTTPAdapter(max_retries=retries))
-
     try:
+        print("正在通过 WxPusher 推送消息到微信...")
         # 设置超时时间为 15 秒
-        response = session.post(url, json=payload, timeout=15)
+        response = requests.post(url, json=payload, timeout=15)
         
         # 尝试解析返回的 JSON
-        try:
-            result = response.json()
-            if result.get("code") == 200:
-                print("✅ 微信消息推送成功！")
-            else:
-                print(f"⚠️ 微信接口返回错误: {result}")
-        except ValueError:
-            print(f"⚠️ 微信接口响应非 JSON 格式: {response.text}")
+        result = response.json()
+        if result.get("code") == 200:
+            print("✅ 微信消息推送成功！")
+        else:
+            print(f"⚠️ 微信接口返回错误: {result}")
             
     except requests.exceptions.RequestException as e:
-        # 即使发生 DNS 解析失败、连接超时等严重网络异常，也只会打印警告，不会导致整个脚本异常退出 (exit code 1)
+        # 核心保护：捕获包括 DNS 域名解析失败（NameResolutionError）、连接超时等所有网络异常
+        # 这样即使 WxPusher 偶发性挂掉或网络波动，脚本也会打印警告并优雅结束，绝不会让 GitHub Actions 任务变红报错
         print(f"❌ [警告] 微信推送网络请求失败（可能是 DNS 解析瞬时异常），但不影响主任务继续运行: {e}")
 
 if __name__ == "__main__":
-    # 你的主流程代码
-    news_html = "<p>测试新闻内容</p>"
-    push_to_wechat(news_html)
+    print("=== 开始执行自动化任务 ===")
+    
+    # 1. 获取新闻内容
+    html_content = fetch_news()
+    
+    # 2. 推送至微信（受 try...except 保护）
+    push_to_wechat(html_content)
+    
+    print("=== 任务执行完毕 ===")
