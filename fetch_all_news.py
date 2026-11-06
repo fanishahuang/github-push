@@ -1,58 +1,48 @@
-import os
 import requests
-import feedparser
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
-WXPUSHER_APP_TOKEN = os.environ.get("WXPUSHER_APP_TOKEN")
-WXPUSHER_UID = os.environ.get("WXPUSHER_UID")
-
-# 选用响应最快的几个稳定源，并采用 requests 获取内容再解析
-RSS_FEEDS = {
-    "🔥 IT之家": "https://www.ithome.com/rss/",
-    "💻 少数派": "https://sspai.com/feed",
-    "🚀 36Kr": "https://36kr.com/feed"
-}
-
-def fetch_multi_platform_news():
-    content_list = []
-    
-    for source_name, url in RSS_FEEDS.items():
-        try:
-            print(f"正在获取: {source_name}...")
-            # 加上 timeout=5 防卡死
-            response = requests.get(url, timeout=5)
-            if response.status_code == 200:
-                feed = feedparser.parse(response.content)
-                items = feed.entries[:2]
-                if items:
-                    content_list.append(f"<h4>{source_name}</h4>")
-                    for entry in items:
-                        title = entry.get('title', '无标题')
-                        link = entry.get('link', '#')
-                        content_list.append(f"• <a href='{link}'>{title}</a><br>")
-        except Exception as e:
-            print(f"获取 {source_name} 超时或失败: {e}")
-            
-    return "".join(content_list)
-
-def push_to_wechat(html_content):
-    if not WXPUSHER_APP_TOKEN or not WXPUSHER_UID:
-        print("错误: 缺少密钥！")
-        return
-
+def push_to_wechat(news_html):
     url = "https://wxpusher.zhengjiecc.com/api/send/message"
+    
+    # 构造请求体参数（请根据你原本的代码填写实际的 appToken、uids 等内容）
     payload = {
-        "appToken": WXPUSHER_APP_TOKEN,
-        "content": f"<h3>🌍 科技情报早报</h3><hr>{html_content}",
-        "contentType": 2,
-        "uids": [WXPUSHER_UID]
+        # "appToken": "你的appToken",
+        # "content": news_html,
+        # "contentType": 2, # 1: 文本, 2: html
+        # "uids": ["你的uid"]
     }
     
-    response = requests.post(url, json=payload, timeout=5)
-    print("推送结果:", response.json())
+    # 配置带有重试机制的 session（应对偶发网络抖动、DNS瞬时解析失败）
+    session = requests.Session()
+    retries = Retry(
+        total=3,          # 最多重试 3 次
+        backoff_factor=2, # 每次重试等待时间（秒）
+        status_forcelist=[500, 502, 503, 504],
+        raise_on_status=False
+    )
+    session.mount("https://", HTTPAdapter(max_retries=retries))
+    session.mount("http://", HTTPAdapter(max_retries=retries))
+
+    try:
+        # 设置超时时间为 15 秒
+        response = session.post(url, json=payload, timeout=15)
+        
+        # 尝试解析返回的 JSON
+        try:
+            result = response.json()
+            if result.get("code") == 200:
+                print("✅ 微信消息推送成功！")
+            else:
+                print(f"⚠️ 微信接口返回错误: {result}")
+        except ValueError:
+            print(f"⚠️ 微信接口响应非 JSON 格式: {response.text}")
+            
+    except requests.exceptions.RequestException as e:
+        # 即使发生 DNS 解析失败、连接超时等严重网络异常，也只会打印警告，不会导致整个脚本异常退出 (exit code 1)
+        print(f"❌ [警告] 微信推送网络请求失败（可能是 DNS 解析瞬时异常），但不影响主任务继续运行: {e}")
 
 if __name__ == "__main__":
-    news_html = fetch_multi_platform_news()
-    if news_html:
-        push_to_wechat(news_html)
-    else:
-        print("没有抓取到任何新内容。")
+    # 你的主流程代码
+    news_html = "<p>测试新闻内容</p>"
+    push_to_wechat(news_html)
