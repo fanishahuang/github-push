@@ -18,7 +18,7 @@ def push_to_wechat(news_html):
     """
     带异常保护的微信推送函数，完美解决 DNS 域名解析失败导致任务崩溃的问题
     """
-    url = "https://wxpusher.zhengjiecc.com/api/send/message"
+    url = "https://wxpusher.zjiecode.com/api/send/message"
     
     # 请确保这里的参数（appToken、uids 等）与你原本代码中的配置保持一致
     payload = {
