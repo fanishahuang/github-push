@@ -79,7 +79,7 @@ def fetch_all_sources():
     return all_items
 
 def analyze_with_deepseek(items):
-    """让 DeepSeek 按照『沉浸式双语对照』格式处理并解析含金量"""
+    """让 DeepSeek 按照『沉浸式句对句双语对照』格式处理并解析含金量"""
     if not items:
         return "今日暂无抓取到有效科技资讯。"
 
@@ -87,8 +87,8 @@ def analyze_with_deepseek(items):
     for idx, item in enumerate(items, 1):
         raw_text += f"[{idx}] 来源：{item['source']}\n英文标题：{item['title']}\n英文正文摘要：{item['summary']}\n链接：{item['link']}\n\n"
 
-    prompt = f"""你是一个顶尖的科技情报分析专家，同时也是一位精通双语对照阅读的英语教练。
-请对以下抓取自全球前沿平台的英文资讯进行深度处理，并严格按照以下『沉浸式双语对照』格式输出（保留原汁原味的英文供学习，并在每句英文下方紧跟精准中文翻译）：
+    prompt = f"""你是一个顶尖的科技情报专家，同时也是精通双语对照的英语教育专家。
+请对以下抓取自全球前沿平台的资讯进行深度处理，并严格按照以下『永久稳定、无需点开链接即可直接阅读』的沉浸式双语对照格式输出：
 
 对于每一条资讯，请严格按以下结构输出：
 ### [编号] 来源分类
@@ -96,13 +96,13 @@ def analyze_with_deepseek(items):
 英文原版标题
 *中文精准翻译*
 
-**沉浸式双语精读：**
-（将提供的英文正文摘要拆分成 2~4 个完整的英文句子。每一句英文独立成行，紧接着下一行用斜体写出对应的中文翻译。不要省略英文原文！）
+**沉浸式双语精读正文：**
+（请将该文章的核心摘要提炼并拆分为 2~4 个关键英文句子。必须严格采用“句对句”对照排版：每一句英文原句单独成行，紧接着下一行用斜体写出精准的中文翻译，形成完美的双语交替，绝对不要把中英文混在同一段里！）
 
 **💡 含金量与痛点解析：**
 用犀利、干练的中文总结这条资讯为什么重要、解决了什么痛点（控制在 2~3 句话）。
 
-**🔗 原始直达：** [点击查看英文原文](链接)
+**🔗 原始直达：** [查看英文原文](链接)
 
 ---
 
@@ -113,7 +113,7 @@ def analyze_with_deepseek(items):
         response = client.chat.completions.create(
             model="deepseek-chat",
             messages=[
-                {"role": "system", "content": "你是一个精通全球前沿科技与中英双语对照教学的硬核情报分析师。"},
+                {"role": "system", "content": "You are a top-tier tech intelligence analyst and bilingual English-Chinese reading coach."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
@@ -143,7 +143,7 @@ def send_to_wxpusher(content):
 if __name__ == "__main__":
     print("正在开始执行多源科技情报聚合与双语解析任务...")
     items = fetch_all_sources()
-    print(f"成功抓取到 {len(items)} 条源资讯，正在调用 DeepSeek 进行沉浸式双语处理...")
+    print(f"成功抓取到 {len(items)} 条源资讯，正在调用 DeepSeek 进行沉浸式句对句双语处理...")
     
     final_markdown = analyze_with_deepseek(items)
     print("正在推送到微信...")
