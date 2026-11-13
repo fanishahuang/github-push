@@ -55,8 +55,8 @@ def fetch_all_sources():
     for source_name, url in RSS_SOURCES.items():
         try:
             feed = feedparser.parse(url)
-            # 每个源取前 2 条最热内容，控制总长度避免超出微信单条限制
-            for entry in feed.entries[:2]:
+            # 【已升级】每个源从 2 条提升到 3 条，让资讯更丰富
+            for entry in feed.entries[:3]:
                 title = entry.get("title", "No Title")
                 link = entry.get("link", "")
                 raw_summary = entry.get("summary", entry.get("description", ""))
