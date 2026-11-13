@@ -15,7 +15,7 @@ client = OpenAI(
     base_url="https://api.deepseek.com"
 )
 
-# 3. 定义全球无反爬、高价值科技与AI资讯源
+# 3. 高价值且稳定的全球科技与 AI 资讯源
 RSS_SOURCES = {
     "🔥 GitHub Trending": "https://github.trending.rss.workers.dev",
     "🤖 OpenAI 官方动态": "https://openai.com/news/rss.xml",
@@ -23,7 +23,8 @@ RSS_SOURCES = {
     "⚡ Anthropic (Claude)": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml",
     "🎨 ComfyUI 动态": "https://github.com/comfyanonymous/ComfyUI/releases.atom",
     "🚀 Hugging Face 前沿": "https://huggingface.co/blog/feed.xml",
-    "💡 Hacker News 头条": "https://news.ycombinator.com/rss"
+    "💡 Hacker News 头条": "https://news.ycombinator.com/rss",
+    "📰 TechCrunch AI": "https://techcrunch.com/category/artificial-intelligence/feed/"
 }
 
 def clean_html(raw_html):
@@ -35,16 +36,16 @@ def clean_html(raw_html):
     return " ".join(text.split())
 
 def fetch_article_snippet(url):
-    """尝试深入抓取网页正文的前几段英文，增加可学习的英文信息量"""
+    """深入抓取网页正文前 5 段英文，确保微信里直接能读到丰富内容"""
     if not url or "github.com" in url or "news.ycombinator.com" in url:
         return ""
     try:
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        resp = requests.get(url, headers=headers, timeout=8)
+        resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             soup = BeautifulSoup(resp.text, "html.parser")
-            paragraphs = [p.get_text(strip=True) for p in soup.find_all("p") if len(p.get_text(strip=True)) > 60]
-            return " ".join(paragraphs[:3])[:600]
+            paragraphs = [p.get_text(strip=True) for p in soup.find_all("p") if len(p.get_text(strip=True)) > 50]
+            return " ".join(paragraphs[:5])[:1000]
     except Exception:
         pass
     return ""
@@ -55,15 +56,15 @@ def fetch_all_sources():
     for source_name, url in RSS_SOURCES.items():
         try:
             feed = feedparser.parse(url)
-            # 【已升级】每个源从 2 条提升到 3 条，让资讯更丰富
-            for entry in feed.entries[:3]:
+            # 每个源抓取最新 2~3 条，兼顾多平台覆盖面与总篇幅
+            for entry in feed.entries[:2]:
                 title = entry.get("title", "No Title")
                 link = entry.get("link", "")
                 raw_summary = entry.get("summary", entry.get("description", ""))
-                clean_summary = clean_html(raw_summary)[:500]
+                clean_summary = clean_html(raw_summary)[:800]
 
-                # 如果 RSS 自带的摘要太短，尝试进入原文链接抓取正文前几段
-                if len(clean_summary) < 120:
+                # 如果 RSS 自带摘要较短，直接抓取原文核心段落补充
+                if len(clean_summary) < 200:
                     extra_text = fetch_article_snippet(link)
                     if extra_text:
                         clean_summary = extra_text
@@ -79,16 +80,16 @@ def fetch_all_sources():
     return all_items
 
 def analyze_with_deepseek(items):
-    """让 DeepSeek 按照『沉浸式句对句双语对照』格式处理并解析含金量"""
+    """让 DeepSeek 生成无需点开网页的『沉浸式句对句双语精读』"""
     if not items:
         return "今日暂无抓取到有效科技资讯。"
 
     raw_text = ""
     for idx, item in enumerate(items, 1):
-        raw_text += f"[{idx}] 来源：{item['source']}\n英文标题：{item['title']}\n英文正文摘要：{item['summary']}\n链接：{item['link']}\n\n"
+        raw_text += f"[{idx}] 来源：{item['source']}\n英文标题：{item['title']}\n英文素材：{item['summary']}\n链接：{item['link']}\n\n"
 
     prompt = f"""你是一个顶尖的科技情报专家，同时也是精通双语对照的英语教育专家。
-请对以下抓取自全球前沿平台的资讯进行深度处理，并严格按照以下『永久稳定、无需点开链接即可直接阅读』的沉浸式双语对照格式输出：
+请对以下抓取自全球前沿平台的资讯进行深度提炼，并严格按照以下『无需点开原网页、直接在微信内完成双语精读』的格式输出：
 
 对于每一条资讯，请严格按以下结构输出：
 ### [编号] 来源分类
@@ -96,13 +97,13 @@ def analyze_with_deepseek(items):
 英文原版标题
 *中文精准翻译*
 
-**沉浸式双语精读正文：**
-（请将该文章的核心摘要提炼并拆分为 2~4 个关键英文句子。必须严格采用“句对句”对照排版：每一句英文原句单独成行，紧接着下一行用斜体写出精准的中文翻译，形成完美的双语交替，绝对不要把中英文混在同一段里！）
+**沉浸式双语精读：**
+（将文章核心内容提炼为 3~5 个地道且信息密度高的英文句子。必须严格采用“句对句”对照排版：每一句英文原句单独成行，紧接着下一行用斜体写出精准的中文翻译，形成完美的双语交替，绝对不要把中英文混在同一段里！）
 
 **💡 含金量与痛点解析：**
-用犀利、干练的中文总结这条资讯为什么重要、解决了什么痛点（控制在 2~3 句话）。
+用犀利、干练的中文总结这条资讯的商业价值、技术突破或解决的痛点（2~3 句话）。
 
-**🔗 原始直达：** [查看英文原文](链接)
+**🔗 原始链接：** [原文备用入口](链接)
 
 ---
 
@@ -117,7 +118,7 @@ def analyze_with_deepseek(items):
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
-            max_tokens=4000
+            max_tokens=6000
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -131,7 +132,7 @@ def send_to_wxpusher(content):
         "appToken": WXPUSHER_APP_TOKEN,
         "content": content,
         "summary": "🌍 全球前沿科技双语精读与情报速递",
-        "contentType": 3,  # 3 代表 Markdown 格式
+        "contentType": 3,
         "uids": [WXPUSHER_UID]
     }
     try:
@@ -141,7 +142,7 @@ def send_to_wxpusher(content):
         print(f"WxPusher 发送异常: {e}")
 
 if __name__ == "__main__":
-    print("正在开始执行多源科技情报聚合与双语解析任务...")
+    print("正在执行多源科技情报聚合与双语解析任务...")
     items = fetch_all_sources()
     print(f"成功抓取到 {len(items)} 条源资讯，正在调用 DeepSeek 进行沉浸式句对句双语处理...")
     
